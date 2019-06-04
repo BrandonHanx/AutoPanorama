@@ -1,66 +1,124 @@
-%% read image
-boxImage = imread('dataset2/1.jpg');
-boxImage = rgb2gray(boxImage);
+% Load images.
+% buildingDir = fullfile(toolboxdir('vision'), 'visiondata', 'building');
+buildingDir = 'building';
+buildingScene = imageDatastore(buildingDir);
 
-% figure;
-% imshow(boxImage);
-% title('Image of a box');
+% Display images to be stitched
+montage(buildingScene.Files)
 
-sceneImage = imread('dataset2/3.jpg');
-sceneImage = rgb2gray(sceneImage);
+% Read the first image from the image set.
+I = readimage(buildingScene, 1);
 
-% figure;
-% imshow(sceneImage);
-% title('Image of cluttered scene');
+% Initialize features for I(1)
+grayImage = rgb2gray(I);
+points = detectSURFFeatures(grayImage);
+[features, points] = extractFeatures(grayImage, points);
 
-%% detect image feature points
-boxPoints = detectSURFFeatures(boxImage);
-scenePoints = detectSURFFeatures(sceneImage);
-figure(1);
-imshow(boxImage);
-title('100 Feature Points');
-hold on;
-plot(selectStrongest(boxPoints, 100));
+% Initialize all the transforms to the identity matrix. Note that the
+% projective transform is used here because the building images are fairly
+% close to the camera. Had the scene been captured from a further distance,
+% an affine transform would suffice.
+numImages = numel(buildingScene.Files);
+tforms(numImages) = projective2d(eye(3));
 
-figure(2);
-imshow(sceneImage);
-title('300 Feature Points');
-hold on;
-plot(selectStrongest(scenePoints, 300));
+% Initialize variable to hold image sizes.
+imageSize = zeros(numImages,2);
 
-%% Extract feature descriptor
-[boxFeatures, boxPoints] = extractFeatures(boxImage, boxPoints);
-[sceneFeatures, scenePoints] = extractFeatures(sceneImage, scenePoints);
+% Iterate over remaining image pairs
+for n = 2:numImages
 
-%% find Putative point matches
-boxPairs = matchFeatures(boxFeatures, sceneFeatures);
+    % Store points and features for I(n-1).
+    pointsPrevious = points;
+    featuresPrevious = features;
 
-%% display matched features
-matchedBoxPoints = boxPoints(boxPairs(:, 1), :);
-matchedScenePoints = scenePoints(boxPairs(:, 2), :);
-figure(3);
-showMatchedFeatures(boxImage, sceneImage, matchedBoxPoints, matchedScenePoints, 'montage');
-title('Putatively Matched Points(Including Outliers)');
+    % Read I(n).
+    I = readimage(buildingScene, n);
 
-%% Locate the Object in Scene Using Putative Matches
-[tform, inlierBoxPoints, inlierScenePoints] = ...
-    estimateGeometricTransform(matchedBoxPoints, matchedScenePoints, 'affine');
-figure(4);
-showMatchedFeatures(boxImage, sceneImage, inlierBoxPoints, inlierScenePoints, 'montage');
-title('Matched Points(Inliers Only)');
+    % Convert image to grayscale.
+    grayImage = rgb2gray(I);
 
-%% Get the bounding polygon of the reference image
-boxPolygon = [1, 1;...                              %top-left
-        size(boxImage, 2), 1;...                    %top-right
-        size(boxImage, 2), size(boxImage, 1);...    %bottom-right
-        1, size(boxImage, 1);...                    %bottom-left
-        1, 1];                                      %top-left again to close the polygon
+    % Save image size.
+    imageSize(n,:) = size(grayImage);
 
-%% Transform the polygon into the coordinate system of the target image
-%% The transformed polygon indicates the location of the object in scene
-newBoxPolygon = transformPointsForward(tform, boxPolygon);
-figure(5);
-imshow(sceneImage);
-hold on;
-line(newBoxPolygon(:, 1), newBoxPolygon(:, 2), 'Color', 'y');
-title('Detected Box');
+    % Detect and extract SURF features for I(n).
+    points = detectSURFFeatures(grayImage);
+    [features, points] = extractFeatures(grayImage, points);
+
+    % Find correspondences between I(n) and I(n-1).
+    indexPairs = matchFeatures(features, featuresPrevious, 'Unique', true);
+
+    matchedPoints = points(indexPairs(:,1), :);
+    matchedPointsPrev = pointsPrevious(indexPairs(:,2), :);
+
+    % Estimate the transformation between I(n) and I(n-1).
+    tforms(n) = estimateGeometricTransform(matchedPoints, matchedPointsPrev,...
+        'projective', 'Confidence', 99.9, 'MaxNumTrials', 2000);
+
+    % Compute T(n) * T(n-1) * ... * T(1)
+    tforms(n).T = tforms(n).T * tforms(n-1).T;
+end
+
+% Compute the output limits  for each transform
+for i = 1:numel(tforms)
+    [xlim(i,:), ylim(i,:)] = outputLimits(tforms(i), [1 imageSize(i,2)], [1 imageSize(i,1)]);
+end
+
+avgXLim = mean(xlim, 2);
+
+[~, idx] = sort(avgXLim);
+
+centerIdx = floor((numel(tforms)+1)/2);
+
+centerImageIdx = idx(centerIdx);
+
+Tinv = invert(tforms(centerImageIdx));
+
+for i = 1:numel(tforms)
+    tforms(i).T = tforms(i).T * Tinv.T;
+end
+
+for i = 1:numel(tforms)
+    [xlim(i,:), ylim(i,:)] = outputLimits(tforms(i), [1 imageSize(i,2)], [1 imageSize(i,1)]);
+end
+
+maxImageSize = max(imageSize);
+
+% Find the minimum and maximum output limits
+xMin = min([1; xlim(:)]);
+xMax = max([maxImageSize(2); xlim(:)]);
+
+yMin = min([1; ylim(:)]);
+yMax = max([maxImageSize(1); ylim(:)]);
+
+% Width and height of panorama.
+width  = round(xMax - xMin);
+height = round(yMax - yMin);
+
+% Initialize the "empty" panorama.
+panorama = zeros([height width 3], 'like', I);
+
+blender = vision.AlphaBlender('Operation', 'Binary mask', ...
+    'MaskSource', 'Input port');
+
+% Create a 2-D spatial reference object defining the size of the panorama.
+xLimits = [xMin xMax];
+yLimits = [yMin yMax];
+panoramaView = imref2d([height width], xLimits, yLimits);
+
+% Create the panorama.
+for i = 1:numImages
+
+    I = readimage(buildingScene, i);
+
+    % Transform I into the panorama.
+    warpedImage = imwarp(I, tforms(i), 'OutputView', panoramaView);
+
+    % Generate a binary mask.
+    mask = imwarp(true(size(I,1),size(I,2)), tforms(i), 'OutputView', panoramaView);
+
+    % Overlay the warpedImage onto the panorama.
+    panorama = step(blender, panorama, warpedImage, mask);
+end
+
+figure
+imshow(panorama)
