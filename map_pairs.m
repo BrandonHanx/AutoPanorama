@@ -46,7 +46,7 @@ function [img_b] = map_pairs(H, img_i, img_b)
     [y_b, x_b] = meshgrid(round(pad_up+min(ul(2), ur(2))):round(pad_up+max(bl(2), br(2))), ...
         round(pad_left+min(ul(1), bl(1))):round(pad_left+max(br(1),ur(1))));
     y_b = y_b(:); x_b = x_b(:);
-    xy = H_inv*[x_b - pad_left, y_b - pad_up, ones(size(x_b,1),1)]';
+    xy = H_inv * [x_b - pad_left, y_b - pad_up, ones(size(x_b,1),1)]';
     x_i = int64(xy(1,:)'./xy(3,:)'); y_i = int64(xy(2,:)'./xy(3,:)');
 
     % Blend img_b and img_i pixels according to dist to boundary
@@ -74,4 +74,17 @@ function [img_b] = map_pairs(H, img_i, img_b)
         img_b((x_b(indices)-1)*size(img_b,1)+y_b(indices) + size(img_b,1)*size(img_b,2) ) = img_i((x_i(indices)-1)*size(img_i,1) + y_i(indices) + size(img_i,1)*size(img_i,2));
         img_b((x_b(indices)-1)*size(img_b,1)+y_b(indices) + size(img_b,1)*size(img_b,2)*2 ) = img_i((x_i(indices)-1)*size(img_i,1) + y_i(indices) + size(img_i,1)*size(img_i,2)*2);
     end
+end
+
+% generate distance to border map
+function [img_dist] = dist2border(img)
+    if size(img,3) > 1
+        img = rgb2gray(img);
+    end
+    img_dist = (img == 0);
+    img_dist(1:size(img,1), 1) = 1;
+    img_dist(1:size(img,1), size(img,2)) = 1;
+    img_dist(1, 1:size(img,2)) = 1;
+    img_dist(size(img,1), 1:size(img,2)) = 1;
+    img_dist = bwdist(img_dist, 'chessboard');
 end

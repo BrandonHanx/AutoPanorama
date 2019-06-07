@@ -1,13 +1,15 @@
 clear;
-%% read and preprocess pictures
+%% read pictures
 % change directory here to test on different datasets 
 directory = 'building/';
 files = dir(directory);
 files = files(3:end);
 
+%% shuffle
 % randIndex = randperm(numel(files));
 % files = files(randIndex);
 
+%% preprocess
 N = numel(files);
 dataset = {};
 cnt = 1;
@@ -27,3 +29,4 @@ end
 order_list = get_order_list(dataset)
 panorama = mymosaic(dataset, order_list);
 imshow(panorama);
+% imwrite(panorama,'panorama.png');
