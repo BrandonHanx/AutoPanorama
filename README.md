@@ -32,13 +32,19 @@ But this approach has many drawbacks:
 - Not sensitive to image order
 - Optimize memory management
 - There will be no unmatched images due to low resolution
-- Anti-noise
+
   <p align="center">
   <img src="https://github.com/BrandonHanx/AutoPanorama/blob/master/results/our_building.png" />
   </p>
-  
+
     <p align="center">
   <img src="https://github.com/BrandonHanx/AutoPanorama/blob/master/results/perfect.png" />
   </p>
-  
+
 More details in our report.
+
+## Something to improve
+
+- Due to RANSAC, the results will be slightly different each time
+  - For very complex dataset, unexpected results can occur
+- Anti-noise ability is poor. If there are images unrelated to the main image in the dataset, the phenomenon of forced blending will occur.
