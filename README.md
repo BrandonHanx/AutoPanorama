@@ -8,6 +8,9 @@ You can run **official_panorama.m** to see [the official solution for image mosa
 But this approach has many drawbacks:
 
 - Obvious stitching seams
+  <p align="center">
+  <img src="https://github.com/BrandonHanx/AutoPanorama/tree/master/results/normal.png" />
+  </p>
 
 - When image resolution is low
 
@@ -16,6 +19,9 @@ But this approach has many drawbacks:
   ```
 
 - Be sensitive to image order
+  <p align="center">
+  <img src="https://github.com/BrandonHanx/AutoPanorama/tree/master/results/error.png" />
+  </p>
 
 - Memory waste is serious
 
@@ -27,5 +33,10 @@ But this approach has many drawbacks:
 - Optimize memory management
 - There will be no unmatched images due to low resolution
 - Anti-noise
-
+  <p align="center">
+  <img src="https://github.com/BrandonHanx/AutoPanorama/tree/master/results/our_building.png" />
+  </p>
+    <p align="center">
+  <img src="https://github.com/BrandonHanx/AutoPanorama/tree/master/results/perfect.png" />
+  </p>
 More details in our report.
