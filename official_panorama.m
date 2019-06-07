@@ -1,16 +1,24 @@
+clear;
+clc;
 % Load images.
 % buildingDir = fullfile(toolboxdir('vision'), 'visiondata', 'building');
 buildingDir = 'building';
 buildingScene = imageDatastore(buildingDir);
+SIZE = [480, 600];
 
 % Display images to be stitched
-montage(buildingScene.Files)
+% montage(buildingScene.Files)
 
 % Read the first image from the image set.
 I = readimage(buildingScene, 1);
 
 % Initialize features for I(1)
-grayImage = rgb2gray(I);
+if ndims(I) == 3
+    grayImage = imresize(rgb2gray(I), SIZE);
+else
+    grayImage = imresize(I, SIZE);
+end
+
 points = detectSURFFeatures(grayImage);
 [features, points] = extractFeatures(grayImage, points);
 
@@ -35,7 +43,11 @@ for n = 2:numImages
     I = readimage(buildingScene, n);
 
     % Convert image to grayscale.
-    grayImage = rgb2gray(I);
+    if ndims(I) == 3
+        grayImage = imresize(rgb2gray(I), SIZE);
+    else
+        grayImage = imresize(I, SIZE);
+    end
 
     % Save image size.
     imageSize(n,:) = size(grayImage);
@@ -95,7 +107,11 @@ width  = round(xMax - xMin);
 height = round(yMax - yMin);
 
 % Initialize the "empty" panorama.
-panorama = zeros([height width 3], 'like', I);
+if ndims(I) == 3
+    panorama = zeros([height width 3], 'like', grayImage);
+else
+    panorama = zeros([height width], 'like', grayImage);
+end
 
 blender = vision.AlphaBlender('Operation', 'Binary mask', ...
     'MaskSource', 'Input port');
@@ -109,6 +125,7 @@ panoramaView = imref2d([height width], xLimits, yLimits);
 for i = 1:numImages
 
     I = readimage(buildingScene, i);
+    I = imresize(I, SIZE);
 
     % Transform I into the panorama.
     warpedImage = imwarp(I, tforms(i), 'OutputView', panoramaView);

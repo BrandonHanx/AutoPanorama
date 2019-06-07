@@ -3,7 +3,7 @@ function [img_b] = mymosaic(img_input, order_list)
     N = numel(img_input);
     img_b = img_input{order_list(1)};
 
-    % stitch images according to order_list
+    % stitch images from BASE_IMG - 1 to 1 to img_b
     for i = 2:1:N
         img_i = img_input{order_list(i)};
         img_b = stitch(img_i, img_b);

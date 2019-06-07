@@ -1,3 +1,28 @@
+function [order_list] = get_order_list(dataset)
+    level_matrix = get_level_matrix(dataset)
+    N = numel(dataset);
+    for i = 1:1:N
+        [rank, index] = sort(level_matrix(i,:), 'descend');
+        rank_matrix(i,:) = index;
+    end
+    rank_matrix
+    order_list = [];
+    base = mode(rank_matrix(:,1));
+    order_list(1) = base;
+    i = 2;
+    j = base;
+    while length(order_list) < N
+        k = 1;
+        while ismember(rank_matrix(j,k), order_list)
+            k = k + 1;
+        end
+        order_list(i) = rank_matrix(j,k);
+        j = order_list(i);
+        i =  i + 1;
+    end 
+    
+end
+
 function [level_matrix] = get_level_matrix(dataset)
     N = numel(dataset);
     level_matrix = zeros(N, N);
@@ -9,7 +34,7 @@ function [level_matrix] = get_level_matrix(dataset)
             end
         end
     end           
-    
+
 end
 
 function [match_points_num] = kd_match(descs1, descs2)
@@ -40,5 +65,6 @@ function [feature_map, points_map] = get_feature_map(dataset)
         points_map(i)=struct('cluster',points); 
     end
 end
+
 
 

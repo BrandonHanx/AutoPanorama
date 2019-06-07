@@ -24,7 +24,6 @@ end
 % save('dataset2.mat', 'dataset');
 
 %% load dataset and run
-% img_m = mymosaic(dataset, 4);
-% imshow(img_m);
-
-level_matrix = get_level_matrix(dataset)
+order_list = get_order_list(dataset)
+panorama = mymosaic(dataset, order_list);
+imshow(panorama);
