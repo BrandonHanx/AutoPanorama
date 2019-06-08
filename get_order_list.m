@@ -8,7 +8,7 @@ function [order_list] = get_order_list(dataset)
     end
     rank_matrix
     order_list = [];
-    base = mode(rank_matrix(:,1));
+    base = find_best(rank_matrix)
     order_list(1) = base;
     i = 2;
     % By default, the graph that matches the most points with other images is used as the initial image
@@ -23,6 +23,34 @@ function [order_list] = get_order_list(dataset)
         i =  i + 1;
     end 
     
+end
+
+%% According to some mapping relationship...
+%% select the most suitable image as the reference base image
+function [base] = find_best(rank_matrix)
+    N = length(rank_matrix(:,1));
+    rank_list = zeros(1, N);
+    freq_matrix = zeros(N, N);
+    for i = 1:1:N
+        table = tabulate(rank_matrix(:, i));
+        j =length(table(:, 2)) + 1;
+        % pad zeros
+        for k = j:1:N
+            table(k, :) = 0;
+        end
+        % extract the second column recoding the frequency of each elements
+        freq_matrix(:, i) = table(:, 2); 
+    end
+    freq_matrix
+    for i = 1:1:N
+        for j = 1:1:N - 1
+            % The larger the number of columns, the smaller the weight
+            % Maybe there has more efficient activation function
+            rank_list(i) = rank_list(i) + (N - j) * freq_matrix(i, j);
+        end
+    end
+    rank_list
+    [~, base] = max(rank_list);
 end
 
 %% Generate a matrix that reflects similar points between any two images

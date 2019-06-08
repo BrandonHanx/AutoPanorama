@@ -37,8 +37,12 @@ But this approach has many drawbacks:
   <img src="https://github.com/BrandonHanx/AutoPanorama/blob/master/results/our_building.png" />
   </p>
 
-    <p align="center">
+  <p align="center">
   <img src="https://github.com/BrandonHanx/AutoPanorama/blob/master/results/perfect.png" />
+  </p>
+
+  <p align="center">
+  <img src="https://github.com/BrandonHanx/AutoPanorama/blob/master/results/golden_gate.png" />
   </p>
 
 More details in our report.
